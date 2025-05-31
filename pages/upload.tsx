@@ -1,4 +1,5 @@
-import { useState } from 'react';
+// pages/upload.tsx
+import React, { useState } from 'react';
 import axios from 'axios';
 
 export default function UploadPage() {
@@ -6,59 +7,43 @@ export default function UploadPage() {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [agree, setAgree] = useState(false);
-  const [response, setResponse] = useState<string | null>(null);
+  const [status, setStatus] = useState('');
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!file || !agree) {
-      alert('파일 업로드와 약관 동의가 필요합니다.');
+      setStatus('파일 업로드와 약관 동의가 필요합니다.');
       return;
     }
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('email', email);
+    formData.append('description', description);
 
     try {
-      const res = await axios.post('/api/submit', formData);
-      setResponse(`문서 ID: ${res.data.documentID}`);
-    } catch (error: any) {
-      console.error(error);
-      alert('업로드 실패: ' + (error.response?.data?.error || error.message));
+      const res = await axios.post('/api/submit', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setStatus(`✅ 분석 완료: 문서 ID - ${res.data.documentID}`);
+    } catch (err: any) {
+      setStatus(`❌ 오류 발생: ${err.response?.data?.error || '서버 오류'}`);
     }
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>AI 구조 분석 업로드</h2>
-      <input
-        placeholder="이메일"
-        onChange={e => setEmail(e.target.value)}
-      />
-      <br />
-      <textarea
-        placeholder="설명"
-        onChange={e => setDescription(e.target.value)}
-      />
-      <br />
-      <input
-        type="file"
-        onChange={e => {
-          const fileList = e.target.files;
-          if (fileList && fileList[0]) {
-            setFile(fileList[0]);
-          }
-        }}
-      />
-      <br />
-      <label>
-        <input
-          type="checkbox"
-          onChange={e => setAgree(e.target.checked)}
-        />{' '}
-        약관에 동의합니다
-      </label>
-      <br />
-      <button onClick={handleSubmit}>제출</button>
-      {response && <p>{response}</p>}
+    <div style={{ padding: 40 }}>
+      <h1>AI 구조 분석 업로드</h1>
+      <form onSubmit={handleSubmit}>
+        <input placeholder="이메일" value={email} onChange={e => setEmail(e.target.value)} /><br />
+        <textarea placeholder="설명" value={description} onChange={e => setDescription(e.target.value)} /><br />
+        <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} /><br />
+        <label>
+          <input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} /> 약관에 동의합니다
+        </label><br />
+        <button type="submit">제출</button>
+      </form>
+      <p>{status}</p>
     </div>
   );
 }
